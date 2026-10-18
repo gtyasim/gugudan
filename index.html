@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>도전! 구구단 마스터</title>
+    <!-- 폰트 및 스타일 라이브러리 불러오기 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        /* 초등학교 저학년에게 어울리는 귀여운 폰트 적용 */
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #fef08a; /* 따뜻하고 밝은 노란색 배경 */
+            user-select: none; /* 드래그 방지 */
+            -webkit-tap-highlight-color: transparent; /* 터치 하이라이트 제거 */
+        }
+        
+        .bounce-anim {
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-5%); }
+            50% { transform: translateY(0); }
+        }
+
+        /* 버튼 누를 때 살짝 들어가는 효과 */
+        .btn-press:active {
+            transform: scale(0.95);
+        }
+
+        /* 정답/오답 애니메이션 */
+        .pop-in {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5) translate(-50%, -50%); opacity: 0; }
+            100% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- 메인 컨테이너 -->
+    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border-4 border-yellow-400 relative h-[700px] flex flex-col">
+        
+        <div id="screen-intro" class="flex-1 flex flex-col items-center justify-center p-8 text-center h-full">
+            <div class="text-6xl mb-4 bounce-anim">🌟</div>
+            <h1 class="text-4xl text-yellow-600 mb-2 drop-shadow-md">구구단 마스터</h1>
+            <p class="text-lg text-gray-600 mb-6">11단까지! 총 10문제를 풀어보아요.</p>
+            
+            <input type="text" id="player-name" placeholder="이름을 적어주세요" class="mb-2 p-3 text-2xl border-4 border-yellow-300 rounded-2xl text-center w-3/4 outline-none focus:border-yellow-500 font-bold text-gray-700">
+            <p id="name-warning" class="text-red-500 font-bold mb-4 h-6 invisible">이름을 꼭 입력해주세요!</p>
+
+            <button onclick="startGame()" class="btn-press bg-yellow-400 hover:bg-yellow-500 text-yellow-900 text-2xl py-4 px-10 rounded-full shadow-[0_6px_0_#ca8a04] transition-all">
+                시작하기!
+            </button>
+        </div>
+
+        <div id="screen-quiz" class="hidden flex-1 flex flex-col h-full">
+            <!-- 상단 진행도 -->
+            <div class="bg-yellow-100 p-4 flex items-center justify-between border-b-4 border-yellow-200">
+                <div class="text-yellow-700 text-xl">문제 <span id="progress-text" class="text-3xl text-yellow-600">1/10</span></div>
+                <div class="w-1/2 bg-white rounded-full h-4 border-2 border-yellow-300 overflow-hidden">
+                    <div id="progress-bar" class="bg-yellow-400 h-full transition-all duration-300" style="width: 10%"></div>
+                </div>
+            </div>
+
+            <!-- 문제 표시 영역 -->
+            <div class="flex-1 flex flex-col items-center justify-center p-6 bg-blue-50 relative">
+                <div class="text-6xl text-gray-800 tracking-wider mb-8 flex items-center gap-4">
+                    <span id="question-num1">2</span>
+                    <span class="text-blue-400 text-5xl">x</span>
+                    <span id="question-num2">3</span>
+                    <span class="text-blue-400 text-5xl">=</span>
+                </div>
+                <!-- 입력된 답안 표시 (텍스트 박스 형태지만 읽기 전용) -->
+                <div class="bg-white border-4 border-blue-200 w-32 h-20 rounded-2xl flex items-center justify-center text-5xl text-blue-600 shadow-inner">
+                    <span id="user-answer"></span>
+                </div>
+
+                <!-- 정답/오답 이펙트 오버레이 -->
+                <div id="feedback-effect" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-9xl hidden z-10 pointer-events-none">
+                    <!-- O 또는 X가 들어갈 자리 -->
+                </div>
+            </div>
+
+            <div class="bg-white p-4 grid grid-cols-3 gap-3 border-t-2 border-gray-100">
+                <!-- 1~9 숫자 버튼 -->
+                <button onclick="inputNumber(1)" class="btn-press bg-gray-100 text-3xl py-4 rounded-xl shadow-[0_4px_0_#d1d5db] text-gray-700">1</button>
+                <button onclick="inputNumber(2)" class="btn-press bg-gray-100 text-3xl py-4 rounded-xl shadow-[0_4px_0_#d1d5db] text-gray-700">2</button>
+                <button onclick="inputNumber(3)" class="btn-press bg-gray-100 text-3xl py-4 rounded-xl shadow-[0_4px_0_#d1d5db] text-gray-700">3</button>
+                <button onclick="inputNumber(4)" class="btn-press bg-gray-100 text-3xl py-4 rounded-xl shadow-[0_4px_0_#d1d5db] text-gray-700">4</button>
+                <button onclick="inputNumber(5)" class="btn-press bg-gray-100 text-3xl py-4 rounded-xl shadow-[0_4px_0_#d1d5db] text-gray-700">5</button>
+                <button onclick="inputNumber(6)" class="btn-press bg-gray-100 text-3xl py-4 rounded-xl shadow-[0_4px_0_#d1d5db] text-gray-700">6</button>
+                <button onclick="inputNumber(7)" class="btn-press bg-gray-100 text-3xl py-4 rounded-xl shadow-[0_4px_0_#d1d5db] text-gray-700">7</button>
+                <button onclick="inputNumber(8)" class="btn-press bg-gray-100 text-3xl py-4 rounded-xl shadow-[0_4px_0_#d1d5db] text-gray-700">8</button>
+                <button onclick="inputNumber(9)" class="btn-press bg-gray-100 text-3xl py-4 rounded-xl shadow-[0_4px_0_#d1d5db] text-gray-700">9</button>
+                
+                <!-- 지우기, 0, 확인 버튼 -->
+                <button onclick="deleteNumber()" class="btn-press bg-red-100 text-red-600 text-2xl py-4 rounded-xl shadow-[0_4px_0_#fca5a5]">지우기</button>
+                <button onclick="inputNumber(0)" class="btn-press bg-gray-100 text-3xl py-4 rounded-xl shadow-[0_4px_0_#d1d5db] text-gray-700">0</button>
+                <button onclick="submitAnswer()" class="btn-press bg-blue-500 text-white text-2xl py-4 rounded-xl shadow-[0_4px_0_#2563eb]">확인</button>
+            </div>
+        </div>
+
+        <div id="screen-result" class="hidden flex-1 flex flex-col p-6 h-full bg-white overflow-hidden">
+            <div class="text-center mb-4 mt-2">
+                <div id="result-emoji" class="text-6xl mb-2">🎉</div>
+                <h2 id="result-message" class="text-3xl text-yellow-600 mb-1">참 잘했어요!</h2>
+                <p class="text-xl text-gray-600"><span id="result-player-name" class="font-bold text-blue-600"></span> 어린이의 점수: <span id="final-score" class="text-3xl text-blue-600 font-bold">100</span>점</p>
+                <div class="mt-3 text-2xl text-purple-700 font-bold bg-purple-100 rounded-2xl py-2 px-6 inline-block shadow-sm">내 등수: <span id="player-rank" class="text-4xl text-purple-600">1</span>등! 🏆</div>
+            </div>
+
+            <!-- 오답 노트 영역 -->
+            <div class="flex-1 overflow-y-auto bg-gray-50 rounded-2xl p-4 border-2 border-gray-100 mb-4">
+                <h3 class="text-xl text-gray-700 mb-3 border-b-2 border-gray-200 pb-2">어떤 문제를 틀렸을까요?</h3>
+                <ul id="wrong-list" class="space-y-3">
+                    <!-- 자바스크립트로 틀린 목록이 여기에 들어갑니다 -->
+                </ul>
+                <div id="perfect-message" class="hidden text-center text-green-500 py-10 text-2xl">
+                    틀린 문제가 없어요!<br>완벽해요! ✨
+                </div>
+            </div>
+
+            <button onclick="returnToIntro()" class="btn-press bg-green-400 hover:bg-green-500 text-white text-2xl py-4 w-full rounded-2xl shadow-[0_6px_0_#16a34a] transition-all mb-2">
+                처음으로
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // 상태 관리 변수들
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let currentInput = "";
+        let isProcessing = false; // 중복 입력 방지 플래그
+        let playerName = ""; // 아이 이름 저장 변수
+
+        // 화면 전환 함수
+        function showScreen(screenId) {
+            document.getElementById('screen-intro').classList.add('hidden');
+            document.getElementById('screen-quiz').classList.add('hidden');
+            document.getElementById('screen-result').classList.add('hidden');
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        // 게임 시작 및 문제 생성
+        function startGame() {
+            const nameInput = document.getElementById('player-name').value.trim();
+            const warningEl = document.getElementById('name-warning');
+            
+            if (!nameInput) {
+                warningEl.classList.remove('invisible');
+                warningEl.classList.add('bounce-anim');
+                return;
+            }
+            warningEl.classList.add('invisible');
+            playerName = nameInput;
+
+            questions = [];
+            currentQuestionIndex = 0;
+            score = 0;
+            currentInput = "";
+            isProcessing = false;
+
+            // 11단까지 10문제 생성
+            for (let i = 0; i < 10; i++) {
+                // 구구단 2단 ~ 11단 (첫 번째 수)
+                let num1 = Math.floor(Math.random() * 10) + 2; 
+                // 곱하는 수 1 ~ 11 (두 번째 수)
+                let num2 = Math.floor(Math.random() * 11) + 1;
+                
+                questions.push({
+                    num1: num1,
+                    num2: num2,
+                    answer: num1 * num2,
+                    userAnswer: null,
+                    isCorrect: false
+                });
+            }
+
+            renderQuestion();
+            showScreen('screen-quiz');
+        }
+
+        // 현재 문제 화면에 표시
+        function renderQuestion() {
+            currentInput = "";
+            updateInputDisplay();
+            
+            const q = questions[currentQuestionIndex];
+            document.getElementById('question-num1').innerText = q.num1;
+            document.getElementById('question-num2').innerText = q.num2;
+            
+            // 진행도 업데이트
+            document.getElementById('progress-text').innerText = `${currentQuestionIndex + 1}/10`;
+            const progressPercent = ((currentQuestionIndex) / 10) * 100;
+            document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+        }
+
+        // 키패드 숫자 입력
+        function inputNumber(num) {
+            if (isProcessing) return;
+            // 답은 최대 3자리(11*11=121)까지만 허용
+            if (currentInput.length < 3) {
+                currentInput += num.toString();
+                updateInputDisplay();
+            }
+        }
+
+        // 키패드 지우기
+        function deleteNumber() {
+            if (isProcessing) return;
+            currentInput = currentInput.slice(0, -1);
+            updateInputDisplay();
+        }
+
+        // 화면에 입력된 숫자 업데이트
+        function updateInputDisplay() {
+            document.getElementById('user-answer').innerText = currentInput;
+        }
+
+        function submitAnswer() {
+            if (isProcessing || currentInput === "") return;
+            
+            isProcessing = true; // 처리 중 플래그 온
+            const q = questions[currentQuestionIndex];
+            const uAnswer = parseInt(currentInput);
+            q.userAnswer = uAnswer;
+            
+            const isCorrect = (uAnswer === q.answer);
+            q.isCorrect = isCorrect;
+            
+            if (isCorrect) score += 10;
+
+            // O / X 피드백 보여주기
+            const feedbackEl = document.getElementById('feedback-effect');
+            feedbackEl.classList.remove('hidden');
+            feedbackEl.classList.add('pop-in');
+            
+            if (isCorrect) {
+                feedbackEl.innerText = "⭕";
+                feedbackEl.className = "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-9xl z-10 pointer-events-none text-green-500 pop-in drop-shadow-lg";
+            } else {
+                feedbackEl.innerText = "❌";
+                feedbackEl.className = "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-9xl z-10 pointer-events-none text-red-500 pop-in drop-shadow-lg";
+            }
+
+            // 잠시 후 다음 문제로 넘어가기 (0.8초)
+            setTimeout(() => {
+                feedbackEl.classList.add('hidden');
+                feedbackEl.classList.remove('pop-in');
+                
+                currentQuestionIndex++;
+                
+                if (currentQuestionIndex < 10) {
+                    isProcessing = false;
+                    renderQuestion();
+                } else {
+                    document.getElementById('progress-bar').style.width = `100%`;
+                    setTimeout(showResults, 300); // 100% 차는거 보여주고 결과창으로
+                }
+            }, 800);
+        }
+
+        function showResults() {
+            document.getElementById('result-player-name').innerText = playerName;
+            document.getElementById('final-score').innerText = score;
+            
+            // 랭킹 계산 및 등수 표시
+            saveScoreAndGetRank();
+            
+            const msgEl = document.getElementById('result-message');
+            const emojiEl = document.getElementById('result-emoji');
+            
+            // 점수에 따른 멘트 다르게 설정
+            if (score === 100) {
+                msgEl.innerText = "완벽해요! 구구단 천재!";
+                msgEl.className = "text-3xl text-green-600 mb-1";
+                emojiEl.innerText = "🏆";
+            } else if (score >= 80) {
+                msgEl.innerText = "참 잘했어요!";
+                msgEl.className = "text-3xl text-blue-600 mb-1";
+                emojiEl.innerText = "🤩";
+            } else if (score >= 50) {
+                msgEl.innerText = "조금만 더 노력해봐요!";
+                msgEl.className = "text-3xl text-yellow-600 mb-1";
+                emojiEl.innerText = "😊";
+            } else {
+                msgEl.innerText = "다시 한번 연습해볼까요?";
+                msgEl.className = "text-3xl text-red-500 mb-1";
+                emojiEl.innerText = "💪";
+            }
+
+            // 오답 리스트 렌더링
+            const wrongListEl = document.getElementById('wrong-list');
+            const perfectMsgEl = document.getElementById('perfect-message');
+            wrongListEl.innerHTML = '';
+            
+            let hasWrong = false;
+
+            questions.forEach((q, index) => {
+                if (!q.isCorrect) {
+                    hasWrong = true;
+                    const li = document.createElement('li');
+                    li.className = "bg-white p-3 rounded-xl border border-red-200 shadow-sm flex items-center justify-between text-xl";
+                    
+                    const eqText = document.createElement('span');
+                    eqText.className = "text-gray-700";
+                    eqText.innerText = `${q.num1} x ${q.num2}`;
+
+                    const ansArea = document.createElement('div');
+                    ansArea.className = "flex flex-col items-end text-sm";
+                    
+                    const myAns = document.createElement('span');
+                    myAns.className = "text-red-500 line-through mr-2";
+                    myAns.innerText = `내가 쓴 답: ${q.userAnswer === null || isNaN(q.userAnswer) ? '없음' : q.userAnswer}`;
+                    
+                    const rightAns = document.createElement('span');
+                    rightAns.className = "text-blue-600 text-lg";
+                    rightAns.innerText = `정답: ${q.answer}`;
+
+                    ansArea.appendChild(myAns);
+                    ansArea.appendChild(rightAns);
+                    
+                    li.appendChild(eqText);
+                    li.appendChild(ansArea);
+                    wrongListEl.appendChild(li);
+                }
+            });
+
+            if (hasWrong) {
+                wrongListEl.classList.remove('hidden');
+                perfectMsgEl.classList.add('hidden');
+            } else {
+                wrongListEl.classList.add('hidden');
+                perfectMsgEl.classList.remove('hidden');
+            }
+
+            showScreen('screen-result');
+        }
+
+        function saveScoreAndGetRank() {
+            // 브라우저 로컬 스토리지에서 기록 가져오기 (없으면 빈 배열)
+            let leaderboard = JSON.parse(localStorage.getItem('gugudan11_leaderboard')) || [];
+            
+            // 현재 플레이 기록 객체 생성
+            const currentRecord = {
+                name: playerName,
+                score: score,
+                timestamp: Date.now()
+            };
+            
+            // 기록 추가
+            leaderboard.push(currentRecord);
+            
+            // 정렬 (1순위: 점수 내림차순, 2순위: 먼저 푼 순서 오름차순)
+            leaderboard.sort((a, b) => {
+                if (b.score === a.score) {
+                    return a.timestamp - b.timestamp; // 시간이 빠를수록(숫자가 작을수록) 상위
+                }
+                return b.score - a.score;
+            });
+            
+            // 로컬 스토리지에 업데이트된 기록 저장
+            localStorage.setItem('gugudan11_leaderboard', JSON.stringify(leaderboard));
+            
+            // 내 등수 찾기
+            const myRank = leaderboard.findIndex(record => record.timestamp === currentRecord.timestamp) + 1;
+            document.getElementById('player-rank').innerText = myRank;
+        }
+
+        // 처음으로 돌아가기
+        function returnToIntro() {
+            document.getElementById('player-name').value = ''; // 입력된 이름 초기화
+            showScreen('screen-intro');
+        }
+
+    </script>
+</body>
+</html>
